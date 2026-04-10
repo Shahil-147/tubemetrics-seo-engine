@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thumbnail Pro | Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- ✅ Restore theme BEFORE page renders -->
+    <script>
+        if (localStorage.getItem('theme') === 'dark' ||
+            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                    // ✅ Removed hardcoded brandBg/brandCard — they blocked light mode
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; letter-spacing: -0.01em; }
+
+        /* Dark mode gradient title */
+        .main-title {
+            background: linear-gradient(to right, #fff, #a1a1aa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* ✅ Light mode title override */
+        html:not(.dark) .main-title {
+            background: linear-gradient(to right, #111, #52525b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .custom-input {
+            transition: border-color 0.2s ease;
+        }
+        .custom-input:focus {
+            outline: none;
+        }
+
+        /* ✅ Thumbnail border adapts to theme */
+        .thumb-preview-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .dark .thumb-preview-container {
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .thumb-preview-container::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+            pointer-events: none;
+        }
+
+        .status-msg {
+            backdrop-filter: blur(8px);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<!-- ✅ Light: white bg | Dark: near-black bg -->
+<body class="bg-white dark:bg-[#0a0a0a] text-zinc-700 dark:text-zinc-400 min-h-screen transition-colors duration-300
+             selection:bg-zinc-200 dark:selection:bg-zinc-800 selection:text-black dark:selection:text-white">
+
+<div th:replace="~{fragments/navbar :: navbar}" th:with="activePage='thumbnails'"></div>
+
+<div class="container mx-auto px-6 max-w-2xl mt-16 pb-20">
+
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="main-title text-3xl md:text-4xl font-semibold tracking-tight mb-3">Thumbnail Downloader</h1>
+        <p class="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
+            Grab the original 1280×720 high-definition asset directly from YouTube's servers.
+        </p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-white/10 rounded-2xl p-6 mb-10 shadow-sm dark:shadow-2xl transition-colors duration-300">
+        <form th:action="@{/get-thumbnail}" method="post" class="space-y-5">
+            <div>
+                <label for="videoUrlOrId"
+                       class="block text-[11px] uppercase tracking-widest font-semibold text-zinc-400 dark:text-zinc-500 mb-3">
+                    Video URL or ID
+                </label>
+                <input type="text" id="videoUrlOrId" name="videoUrlOrId"
+                       class="custom-input w-full px-4 py-3 rounded-xl text-sm
+                              bg-white dark:bg-[#161616]
+                              border border-zinc-200 dark:border-white/10
+                              focus:border-zinc-400 dark:focus:border-white/30
+                              text-zinc-800 dark:text-zinc-200
+                              placeholder:text-zinc-400 dark:placeholder:text-zinc-600
+                              transition-colors duration-200"
+                       placeholder="https://www.youtube.com/watch?v=..." required>
+            </div>
+            <button type="submit"
+                    class="w-full bg-zinc-900 hover:bg-zinc-700 dark:bg-white dark:hover:bg-zinc-200
+                           text-white dark:text-black
+                           text-sm font-semibold py-3 px-6 rounded-xl transition-all duration-200">
+                Fetch High-Res Asset
+            </button>
+        </form>
+
+        <!-- Error -->
+        <div th:if="${error}"
+             class="status-msg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400
+                    rounded-xl p-4 mt-6 border border-red-200 dark:border-red-500/20"
+             th:text="${error}"></div>
+    </div>
+
+    <!-- Thumbnail Preview -->
+    <div th:if="${thumbnailUrl}" class="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div class="flex justify-between items-end mb-4 px-1">
+            <div>
+                <h2 class="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Preview</h2>
+                <p class="text-[11px] text-zinc-400 dark:text-zinc-600">Resolution: 1280 × 720 px</p>
+            </div>
+            <button type="button"
+                    onclick="downloadImage('[[${thumbnailUrl}]]', 'yt-thumbnail-hq.jpg')"
+                    class="text-[11px]
+                           text-zinc-700 dark:text-white
+                           bg-zinc-100 dark:bg-zinc-800
+                           hover:bg-zinc-200 dark:hover:bg-zinc-700
+                           border border-zinc-200 dark:border-white/10
+                           px-4 py-2 rounded-lg transition-all flex items-center gap-2">
+                <i class="bi bi-download"></i> Save Image
+            </button>
+        </div>
+
+        <!-- ✅ Light mode: light border | Dark mode: dark border -->
+        <div class="thumb-preview-container border border-zinc-200 dark:border-white/10
+                    bg-zinc-100 dark:bg-black">
+            <img th:src="${thumbnailUrl}"
+                 alt="YouTube HQ Thumbnail"
+                 class="w-full h-auto block"
+                 onerror="this.onerror=null;this.src='https://via.placeholder.com/1280x720?text=Asset+Not+Found';">
+        </div>
+
+        <p class="mt-4 text-[11px] text-center text-zinc-400 dark:text-zinc-600 italic">
+            Note: High-resolution assets are only available if provided by the creator.
+        </p>
+    </div>
+</div>
+
+<script>
+    function downloadImage(url, filename) {
+        fetch(url, { mode: 'cors' })
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            })
+            .catch(() => alert('Failed to download image. Try right-clicking and "Save Image As".'));
+    }
+</script>
+
+</body>
+</html>
